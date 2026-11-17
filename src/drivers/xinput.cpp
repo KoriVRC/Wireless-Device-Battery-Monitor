@@ -11,9 +11,12 @@
 #endif
 #include "drivers.h"
 
+#include <xinput.h>
+
+#if __has_include(<windows.gaming.input.h>) && __has_include(<windows.system.power.h>)
+#define HAS_WGI 1
 #include <roapi.h>
 #include <winstring.h>
-#include <xinput.h>
 #include <windows.system.power.h>
 // MinGW's windows.devices.power.h names BatteryStatus without its namespace; make it visible there.
 namespace ABI { namespace Windows { namespace Devices { namespace Power {
@@ -21,9 +24,13 @@ using ABI::Windows::System::Power::BatteryStatus;
 } } } }
 #include <windows.devices.power.h>
 #include <windows.gaming.input.h>
+#else
+#define HAS_WGI 0
+#endif
 
 namespace {
 
+#if HAS_WGI
 using namespace ABI::Windows::Gaming::Input;
 using ABI::Windows::Devices::Power::IBatteryReport;
 
@@ -118,6 +125,12 @@ int PollWgi(PollContext& ctx, int& thirdParty) {
     Release(list);
     return added;
 }
+#else
+int PollWgi(PollContext& ctx, int& thirdParty) {
+    thirdParty = 0;
+    return 0;
+}
+#endif
 
 using GetBatteryFn = DWORD(WINAPI*)(DWORD, BYTE, XINPUT_BATTERY_INFORMATION*);
 using GetStateFn = DWORD(WINAPI*)(DWORD, XINPUT_STATE*);

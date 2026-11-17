@@ -1,7 +1,9 @@
 #include "widget.h"
 
 #include <commctrl.h>
+#define new _uia_new
 #include <uiautomation.h>
+#undef new
 #include <algorithm>
 
 namespace {
@@ -40,6 +42,7 @@ HWND g_wbRectBar;            // taskbar g_wbRect was found in (guarded by g_wbLo
 HWND g_wbTaskbar;            // taskbar to search, null while there is no widget (guarded by g_wbLock)
 HANDLE g_wbWake;             // auto-reset: wakes the lookup thread early
 
+#ifdef __IUIAutomation_INTERFACE_DEFINED__
 DWORD WINAPI WidgetsButtonThread(LPVOID) {
     CoInitializeEx(nullptr, COINIT_MULTITHREADED);
     IUIAutomation* uia = nullptr;
@@ -84,6 +87,13 @@ DWORD WINAPI WidgetsButtonThread(LPVOID) {
         ReleaseSRWLockExclusive(&g_wbLock);
     }
 }
+#else
+DWORD WINAPI WidgetsButtonThread(LPVOID) {
+    for (;;) {
+        WaitForSingleObject(g_wbWake, INFINITE);
+    }
+}
+#endif
 
 // Points the lookup thread at `taskbar` (null to idle it), starting the thread on first use.
 // The last rectangle is kept for its taskbar, so switching from tray-icon back to taskbar mode on the
@@ -348,7 +358,7 @@ bool Create(HINSTANCE inst, HWND notifyWnd, UINT clickMsg, bool lightTheme) {
         WNDCLASSEXW wc{ sizeof(wc) };
         wc.lpfnWndProc = WidgetProc;
         wc.hInstance = inst;
-        wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
+        wc.hCursor = LoadCursorW(nullptr, (LPCWSTR)IDC_ARROW);
         wc.lpszClassName = kClass;
         registered = RegisterClassExW(&wc) != 0;
     }

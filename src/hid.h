@@ -9,8 +9,10 @@
 #include "platform_compat.h"
 
 #ifdef _WIN32
+extern "C" {
 #include <hidsdi.h>
 #include <hidpi.h>
+}
 #else
 // Only the fields used by HidColl's accessors are needed by the portable drivers.
 struct HIDP_CAPS {
